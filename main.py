@@ -55,9 +55,11 @@ async def create_book():
         try:
             await session.commit()
         except IntegrityError as e:
+            msg = str(e.orig)
             if "FOREIGN KEY" in str(e.orig):
-                # don't expose the internal db structure
-                raise Exception(f'foreign key constraint failed.')
+                # don't expose the db
+                msg = 'foreign key constraint failed.'
+            raise Exception(msg)
 
 
 async def main():
