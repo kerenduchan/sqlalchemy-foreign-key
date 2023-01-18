@@ -3,6 +3,7 @@ from sqlalchemy import event
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.exc import IntegrityError
 
 
 engine = create_async_engine('sqlite+aiosqlite:///library.db')
@@ -51,12 +52,21 @@ async def create_book():
     book = Book(title="Book 1", author_id=1)
     async with session_maker() as session:
         session.add(book)
-        await session.commit()
+        try:
+            await session.commit()
+        except IntegrityError as e:
+            if "FOREIGN KEY" in str(e.orig):
+                # don't expose the internal db structure
+                raise Exception(f'foreign key constraint failed.')
 
 
 async def main():
     await init_db()
-    await create_book()
+
+    try:
+        await create_book()
+    except Exception as e:
+        print(f'Failed to create book: {e}')
 
 if __name__ == "__main__":
     asyncio.run(main())
