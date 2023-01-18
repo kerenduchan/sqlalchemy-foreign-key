@@ -1,15 +1,20 @@
 import asyncio
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import event
+from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.orm import sessionmaker
-import logging
 
-logging.basicConfig()
-logging.getLogger("sqlalchemy.engine").setLevel(logging.DEBUG)
 
-engine = create_async_engine(f'sqlite+aiosqlite:///library.db')
+engine = create_async_engine('sqlite+aiosqlite:///library.db')
+
+
+# add enforcement for foreign keys
+@event.listens_for(engine.sync_engine, "connect")
+def enable_sqlite_fks(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
 
 session_maker = sessionmaker(
     bind=engine,
